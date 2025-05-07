@@ -1,0 +1,1 @@
+chmod 644 /etc/mysql/my.cnf
