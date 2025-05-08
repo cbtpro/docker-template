@@ -1,0 +1,6 @@
+-- 初始化数据库和复制账号
+CREATE DATABASE IF NOT EXISTS user_db;
+
+CREATE USER IF NOT EXISTS 'replica'@'%' IDENTIFIED WITH mysql_native_password BY 'replica_pass';
+GRANT REPLICATION SLAVE ON *.* TO 'replica'@'%';
+FLUSH PRIVILEGES;

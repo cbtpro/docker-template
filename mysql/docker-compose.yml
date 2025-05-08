@@ -1,48 +1,48 @@
+x-image-default: &mysql-image registry.cn-hangzhou.aliyuncs.com/useful-person/mysql:8.0
+
 services:
   # 主库
   mysql-master:
-    image: mysql:8.0
+    image: *mysql-image
     container_name: mysql-master
     environment:
-      MYSQL_DATABASE: testdb
       MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: user_db
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: secret
       MYSQL_REPLICATION_USER: replica
       MYSQL_REPLICATION_PASSWORD: replica_pass
     volumes:
+      - "${MYSQL_PRIMARY_DATA_PATH}:/var/lib/mysql"
       - ./mysql-master/config/my.cnf:/etc/mysql/my.cnf
-      - mysql-master-data:/var/lib/mysql
-    networks:
-      - mysql-cluster
-    ports:
-      - "3306:3306"
-    restart: always
-    command: bash -c "chmod 644 /etc/mysql/my.cnf && docker-entrypoint.sh mysqld"
-
-  # 从库1
-  mysql-slave1:
-    image: mysql:8.0
-    container_name: mysql-slave1
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-    volumes:
-      - ./mysql-slave1/config/my.cnf:/etc/mysql/my.cnf
-      - mysql-slave1-data:/var/lib/mysql
+      - ./mysql-master/init-primary.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - mysql-cluster
     ports:
       - "3307:3306"
     restart: always
     command: bash -c "chmod 644 /etc/mysql/my.cnf && docker-entrypoint.sh mysqld"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
-  # 从库2
-  mysql-slave2:
-    image: mysql:8.0
-    container_name: mysql-slave2
+  # 从库1
+  mysql-slave1:
+    image: *mysql-image
+    container_name: mysql-slave1
+    depends_on:
+      mysql-master:
+        condition: service_healthy
     environment:
       MYSQL_ROOT_PASSWORD: rootpass
     volumes:
-      - ./mysql-slave2/config/my.cnf:/etc/mysql/my.cnf
-      - mysql-slave2-data:/var/lib/mysql
+      - "${MYSQL_SECONDARY_1_DATA_PATH}:/var/lib/mysql"
+      - ./mysql-slave1/config/my.cnf:/etc/mysql/my.cnf
+      - ./mysql-slave1/reset.sql:/docker-entrypoint-initdb.d/init.sql
+      # - ./init-slave.sh:/docker-entrypoint-initdb.d/init-slave.sh
     networks:
       - mysql-cluster
     ports:
@@ -50,11 +50,27 @@ services:
     restart: always
     command: bash -c "chmod 644 /etc/mysql/my.cnf && docker-entrypoint.sh mysqld"
 
+  # 从库2
+  mysql-slave2:
+    image: *mysql-image
+    container_name: mysql-slave2
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - "${MYSQL_SECONDARY_2_DATA_PATH}:/var/lib/mysql"
+      - ./mysql-slave2/config/my.cnf:/etc/mysql/my.cnf
+      - ./mysql-slave2/reset.sql:/docker-entrypoint-initdb.d/init.sql
+      # - ./init-slave.sh:/docker-entrypoint-initdb.d/init-slave.sh
+    networks:
+      - mysql-cluster
+    ports:
+      - "3309:3306"
+    restart: always
+    command: bash -c "chmod 644 /etc/mysql/my.cnf && docker-entrypoint.sh mysqld"
+
 networks:
   mysql-cluster:
     driver: bridge
-
-volumes:
-  mysql-master-data:
-  mysql-slave1-data:
-  mysql-slave2-data:
