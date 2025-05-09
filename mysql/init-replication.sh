@@ -25,15 +25,16 @@ echo "📋 Master log position: $POSITION"
 for SLAVE in "${SLAVE_CONTAINERS[@]}"; do
   echo "🔧 Configuring replication on $SLAVE..."
   docker exec -i $SLAVE mysql -uroot -prootpass <<EOF
-STOP SLAVE;
+STOP REPLICA;
 CHANGE MASTER TO
   MASTER_HOST='mysql-master',
   MASTER_USER='$REPL_USER',
   MASTER_PASSWORD='$REPL_PASSWORD',
   MASTER_LOG_FILE='$FILE',
   MASTER_LOG_POS=$POSITION;
-START SLAVE;
-SHOW SLAVE STATUS\G
+RESET REPLICA;
+START REPLICA;
+SHOW REPLICA STATUS\G
 EOF
 done
 
