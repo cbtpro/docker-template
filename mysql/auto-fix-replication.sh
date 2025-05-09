@@ -26,15 +26,15 @@ for SLAVE in "${SLAVES[@]}"; do
   STATUS=$(docker exec -i $SLAVE mysql -u$MYSQL_USER -p$MYSQL_PASS -e "SHOW REPLICA STATUS\G")
   echo "$STATUS" >> "$LOG_FILE_PATH"
 
-  IO_RUNNING=$(echo "$STATUS" | awk '/Slave_IO_Running:/ {print $2}')
-  SQL_RUNNING=$(echo "$STATUS" | awk '/Slave_SQL_Running:/ {print $2}')
+  IO_RUNNING=$(echo "$STATUS" | awk '/Replica_IO_Running:/ {print $2}')
+  SQL_RUNNING=$(echo "$STATUS" | awk '/Replica_SQL_Running:/ {print $2}')
 
   if [[ "$IO_RUNNING" != "Yes" || "$SQL_RUNNING" != "Yes" ]]; then
     echo "❌ 检测到复制未运行或未配置，正在修复..." | tee -a "$LOG_FILE_PATH"
 
     docker exec -i $SLAVE mysql -u$MYSQL_USER -p$MYSQL_PASS <<EOF >> "$LOG_FILE_PATH" 2>&1
 STOP REPLICA;
-RESET REPLICA;
+RESET REPLICA ALL;
 CHANGE MASTER TO
   MASTER_HOST='$MASTER',
   MASTER_USER='$REPL_USER',
@@ -50,7 +50,7 @@ EOF
 
     docker exec -i $SLAVE mysql -u$MYSQL_USER -p$MYSQL_PASS -e "SHOW REPLICA STATUS\G" \
       | tee -a "$LOG_FILE_PATH" \
-      | grep -E "Slave_IO_Running|Slave_SQL_Running|Last_IO_Error|Last_SQL_Error"
+      | grep -E "Replica_IO_Running|Replica_SQL_Running|Last_IO_Error|Last_SQL_Error"
   else
     echo "✅ $SLAVE 的主从复制正常运行" | tee -a "$LOG_FILE_PATH"
   fi
