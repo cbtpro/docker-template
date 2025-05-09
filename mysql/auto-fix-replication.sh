@@ -46,11 +46,18 @@ START REPLICA;
 SHOW REPLICA STATUS\G
 EOF
 
+    docker exec -i $SLAVE mysql -u$MYSQL_USER -p$MYSQL_PASS <<EOF >> "$LOG_FILE_PATH" 2>&1
+STOP REPLICA;
+START REPLICA;
+SHOW REPLICA STATUS\G
+EOF
+
+
     echo "✅ 修复完成，正在验证..." | tee -a "$LOG_FILE_PATH"
 
     docker exec -i $SLAVE mysql -u$MYSQL_USER -p$MYSQL_PASS -e "SHOW REPLICA STATUS\G" \
       | tee -a "$LOG_FILE_PATH" \
-      | grep -E "Replica_IO_Running|Replica_SQL_Running|Last_IO_Error|Last_SQL_Error"
+      | grep -E "Source_Host|Source_User|Source_Port|Connect_Retry|Source_Log_File|Read_Source_Log_Pos|Replica_IO_Running|Replica_SQL_Running|Last_Error|Last_IO_Error|Last_SQL_Error"
   else
     echo "✅ $SLAVE 的主从复制正常运行" | tee -a "$LOG_FILE_PATH"
   fi
