@@ -1,0 +1,18 @@
+services:
+  grafana:
+    image: grafana/grafana:latest
+    container_name: my-grafana
+    restart: unless-stopped
+    ports:
+      - '7000:3000'
+    volumes:
+      # 自定义挂载目录，注意 custom.ini 和数据目录挂载
+      - ~/docker/grafana_data:/var/lib/grafana
+      - ./config/custom.ini:/etc/grafana/grafana.ini
+    environment:
+      # 自定义初始用户名和密码
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      # 可选：关闭首次登录修改密码提示
+      - GF_SECURITY_DISABLE_INITIAL_ADMIN_CHANGE=false
+    user: '472' # 默认Grafana运行用户，避免权限问题
