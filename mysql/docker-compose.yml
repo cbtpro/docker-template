@@ -1,4 +1,5 @@
-x-image-default: &mysql-image registry.cn-hangzhou.aliyuncs.com/useful-person/mysql:8.0
+# x-image-default: &mysql-image registry.cn-hangzhou.aliyuncs.com/useful-person/mysql:8.0
+x-image-default: &mysql-image mysql:8.0
 
 services:
   # 主库
